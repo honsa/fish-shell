@@ -45,9 +45,7 @@
 #include "builtins/math.h"
 #include "builtins/path.h"
 #include "builtins/printf.h"
-#include "builtins/pwd.h"
 #include "builtins/read.h"
-#include "builtins/realpath.h"
 #include "builtins/set.h"
 #include "builtins/set_color.h"
 #include "builtins/shared.rs.h"
@@ -395,10 +393,10 @@ static constexpr builtin_data_t builtin_datas[] = {
     {L"or", &builtin_generic, N_(L"Execute command if previous command failed")},
     {L"path", &builtin_path, N_(L"Handle paths")},
     {L"printf", &builtin_printf, N_(L"Prints formatted text")},
-    {L"pwd", &builtin_pwd, N_(L"Print the working directory")},
+    {L"pwd", &implemented_in_rust, N_(L"Print the working directory")},
     {L"random", &implemented_in_rust, N_(L"Generate random number")},
     {L"read", &builtin_read, N_(L"Read a line of input into variables")},
-    {L"realpath", &builtin_realpath, N_(L"Show absolute path sans symlinks")},
+    {L"realpath", &implemented_in_rust, N_(L"Show absolute path sans symlinks")},
     {L"return", &implemented_in_rust, N_(L"Stop the currently evaluated function")},
     {L"set", &builtin_set, N_(L"Handle environment variables")},
     {L"set_color", &builtin_set_color, N_(L"Set the terminal color")},
@@ -485,6 +483,12 @@ proc_status_t builtin_run(parser_t &parser, const wcstring_list_t &argv, io_stre
         return proc_status_t::empty();
     }
     if (code < 0) {
+        // If the code is below 0, constructing a proc_status_t
+        // would assert() out, which is a terrible failure mode
+        // So instead, what we do is we get a positive code,
+        // and we avoid 0.
+        code = abs((256 + code) % 256);
+        if (code == 0) code = 255;
         FLOGF(warning, "builtin %ls returned invalid exit code %d", cmdname.c_str(), code);
     }
     return proc_status_t::from_exit_code(code);
@@ -541,8 +545,14 @@ static maybe_t<RustBuiltin> try_get_rust_builtin(const wcstring &cmd) {
     if (cmd == L"exit") {
         return RustBuiltin::Exit;
     }
+    if (cmd == L"pwd") {
+        return RustBuiltin::Pwd;
+    }
     if (cmd == L"random") {
         return RustBuiltin::Random;
+    }
+    if (cmd == L"realpath") {
+        return RustBuiltin::Realpath;
     }
     if (cmd == L"wait") {
         return RustBuiltin::Wait;

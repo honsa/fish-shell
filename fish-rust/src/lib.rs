@@ -10,6 +10,7 @@
 #[macro_use]
 mod common;
 mod color;
+mod event;
 mod fd_monitor;
 mod fd_readable_set;
 mod fds;
@@ -44,6 +45,9 @@ mod abbrs;
 mod builtins;
 mod env;
 mod re;
+
+mod expand;
+mod path;
 
 // Don't use `#[cfg(test)]` here to make sure ffi tests are built and tested
 mod tests;
